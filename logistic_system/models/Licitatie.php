@@ -12,7 +12,6 @@ class Licitatie {
     public $oferta_castigatoare_id;
     public $motiv_justificare;
     public $created_by;
-    public $created_at;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -68,12 +67,13 @@ class Licitatie {
                      e.destinatie as loc_descarcare, 
                      'Târgu Mureș' as loc_incarcare, 
                      e.produs,
+                     e.necesita_adr,
                      u.company_name as manager_company
               FROM " . $this->table_name . " l
               INNER JOIN expedities e ON l.expeditie_id = e.id
               INNER JOIN users u ON l.created_by = u.id
               WHERE l.status = 'active'
-              ORDER BY l.created_at DESC";
+              ORDER BY l.data_start DESC";
         
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -88,13 +88,14 @@ class Licitatie {
                      e.destinatie as loc_descarcare, 
                      'Târgu Mureș' as loc_incarcare, 
                      e.produs,
+                     e.necesita_adr,
                      COUNT(o.id) as numar_oferte
               FROM " . $this->table_name . " l
               INNER JOIN expedities e ON l.expeditie_id = e.id
               LEFT JOIN oferte o ON l.id = o.licitatie_id
               WHERE l.created_by = :manager_id
               GROUP BY l.id
-              ORDER BY l.created_at DESC";
+              ORDER BY l.data_start DESC, l.id DESC";
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":manager_id", $manager_id);
@@ -109,6 +110,7 @@ class Licitatie {
                      e.nume_client, 
                      e.destinatie, 
                      e.produs,
+                     e.necesita_adr,
                      e.tarif_tinta,
                      e.moneda
               FROM " . $this->table_name . " l
@@ -123,6 +125,51 @@ class Licitatie {
             return $stmt->fetch(PDO::FETCH_ASSOC);
         }
         return false;
+    }
+
+    // Verifică dacă o expediție are deja licitație activă
+    public function areLicitatieActiva($expeditie_id) {
+        $query = "SELECT id FROM " . $this->table_name . " 
+                  WHERE expeditie_id = :expeditie_id AND status = 'active' 
+                  LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":expeditie_id", $expeditie_id);
+        $stmt->execute();
+        
+        return $stmt->rowCount() > 0;
+    }
+
+    // Obține licitația activă pentru o expediție
+    public function getLicitatieActivaByExpeditie($expeditie_id) {
+        $query = "SELECT l.*, e.nume_client, e.destinatie, e.produs, e.necesita_adr
+                  FROM " . $this->table_name . " l
+                  INNER JOIN expedities e ON l.expeditie_id = e.id
+                  WHERE l.expeditie_id = :expeditie_id AND l.status = 'active' 
+                  LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":expeditie_id", $expeditie_id);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        return false;
+    }
+
+    // Obține toate licitațiile expirate care trebuie finalizate
+    public function getLicitatiiExpirate() {
+        $query = "SELECT l.* 
+                  FROM " . $this->table_name . " l
+                  WHERE l.status = 'active' 
+                  AND l.data_start IS NOT NULL 
+                  AND DATE_ADD(l.data_start, INTERVAL l.termen_ore HOUR) < NOW()";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 ?>

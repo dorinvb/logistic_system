@@ -183,10 +183,10 @@ $licitatii = $licitatieModel->getLicitatiiByManager($_SESSION['user_id']);
 
         <div class="actions-grid">
             <div class="action-card">
-                <h3>🚚 Expediție Nouă</h3>
-                <p>Crează o nouă expediție pentru licitație</p>
-                <a href="creare_expeditie.php" class="btn">Crează Expediție</a>
-            </div>
+    <h3>🚚 Expediție Nouă</h3>
+    <p>Crează o nouă expediție pentru licitație</p>
+    <a href="creare_expeditie.php" class="btn">Crează Expediție</a>
+</div>
             
             <div class="action-card">
                 <h3>⚡ Start Licitatie</h3>
@@ -244,7 +244,7 @@ $licitatii = $licitatieModel->getLicitatiiByManager($_SESSION['user_id']);
                                 </span>
                             </td>
                             <td><?php echo $licitatie['numar_oferte']; ?> oferte</td>
-                            <td><?php echo date('d.m.Y H:i', strtotime($licitatie['created_at'])); ?></td>
+                            <td><?php echo date('d.m.Y H:i', strtotime($licitatie['data_start'])); ?></td>
                             <td>
                                 <a href="licitatie_detalii.php?id=<?php echo $licitatie['id']; ?>" class="btn" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                                     Vezi Detalii

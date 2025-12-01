@@ -110,6 +110,36 @@ class User {
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // Verifică dacă userul este transportator
+    public function isTransportator($user_id) {
+        $query = "SELECT id FROM " . $this->table_name . " 
+                  WHERE id = :user_id AND role = 'transportator' AND is_active = 1 
+                  LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":user_id", $user_id);
+        $stmt->execute();
+        
+        return $stmt->rowCount() > 0;
+    }
+
+    // Obține user by ID
+    public function getUserById($user_id) {
+        $query = "SELECT id, username, email, role, company_name, phone, is_active 
+                  FROM " . $this->table_name . " 
+                  WHERE id = :user_id AND is_active = 1 
+                  LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":user_id", $user_id);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        return false;
+    }
 }
 ?>
 

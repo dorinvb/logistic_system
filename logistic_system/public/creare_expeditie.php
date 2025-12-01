@@ -21,25 +21,28 @@ $error = '';
 // Procesare formular creare expediție
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
-        'nume_expeditie' => $_POST['nume_expeditie'],
-        'loc_incarcare' => $_POST['loc_incarcare'],
-        'loc_descarcare' => $_POST['loc_descarcare'],
-        'client_nume' => $_POST['client_nume'],
-        'distanta_km' => $_POST['distanta_km'],
-        'tonaj' => $_POST['tonaj'],
+        'nume_client' => $_POST['nume_client'],
+        'destinatie' => $_POST['destinatie'],
+        'produs' => $_POST['produs'],
+        'necesita_adr' => $_POST['necesita_adr'] ?? 0,
         'tarif_tinta' => $_POST['tarif_tinta'],
-        'data_expeditie' => $_POST['data_expeditie'],
-        'detalii' => $_POST['detalii'],
+        'moneda' => $_POST['moneda'],
+        'data_transport' => $_POST['data_transport'],
         'created_by' => $_SESSION['user_id']
     ];
 
-    $result = $expeditieModel->create($data);
-    
-    if ($result['success']) {
-        $success = $result['message'];
-        $_POST = array();
+    // Validări de bază
+    if (empty($data['nume_client']) || empty($data['destinatie']) || empty($data['produs']) || empty($data['data_transport'])) {
+        $error = "Toate câmpurile obligatorii trebuie completate!";
     } else {
-        $error = $result['message'];
+        $result = $expeditieModel->create($data);
+        
+        if ($result['success']) {
+            $success = $result['message'];
+            $_POST = array(); // Reset form
+        } else {
+            $error = $result['message'];
+        }
     }
 }
 ?>
@@ -51,7 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creare Expediție - Sistem Logistic</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f6fa;
@@ -112,6 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #555;
             font-weight: 500;
         }
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
         input, textarea, select {
             width: 100%;
             padding: 0.75rem;
@@ -158,17 +169,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
         .info-box {
             background: #e7f3ff;
             border-left: 4px solid #667eea;
             padding: 1rem;
             margin-bottom: 1.5rem;
             border-radius: 5px;
+        }
+        .adr-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -187,14 +206,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2>Adaugă o nouă expediție</h2>
             
             <div class="info-box">
-                <strong>💡 Informații:</strong> Expedițiile vor fi create cu punctul de încărcare prestabilit Târgu Mureș, 
-                dar poți modifica dacă este necesar pentru retururi sau alte situații.
+                <strong>💡 Informații:</strong> Toate expedițiile vor fi create cu punctul de încărcare <strong>Târgu Mureș</strong>. 
+                După creare, poți porni licitația pentru a primi oferte de la transportatori.
             </div>
             
             <?php if ($success): ?>
                 <div class="success">
                     ✅ <?php echo htmlspecialchars($success); ?>
                     <br><small>Expediția a fost creată și este acum disponibilă pentru licitație.</small>
+                    <br><a href="lista_expeditii.php" class="btn" style="margin-top: 0.5rem; background: #28a745;">Vezi Toate Expedițiile</a>
                 </div>
             <?php endif; ?>
             
@@ -204,70 +224,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form method="POST" action="">
                 <div class="form-group">
-                    <label for="nume_expeditie">Nume Expediție *</label>
-                    <input type="text" id="nume_expeditie" name="nume_expeditie" required
-                           value="<?php echo htmlspecialchars($_POST['nume_expeditie'] ?? ''); ?>"
-                           placeholder="ex: Expediție Client X - București">
+                    <label for="nume_client" class="required">Nume Client</label>
+                    <input type="text" id="nume_client" name="nume_client" required
+                           value="<?php echo htmlspecialchars($_POST['nume_client'] ?? ''); ?>"
+                           placeholder="ex: Comcerial, Azochim, Archim, etc.">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="loc_incarcare">Loc Încărcare *</label>
-                        <input type="text" id="loc_incarcare" name="loc_incarcare" required
-                               value="<?php echo htmlspecialchars($_POST['loc_incarcare'] ?? 'Târgu Mureș'); ?>"
-                               placeholder="ex: Târgu Mureș">
+                        <label for="destinatie" class="required">Destinație</label>
+                        <input type="text" id="destinatie" name="destinatie" required
+                               value="<?php echo htmlspecialchars($_POST['destinatie'] ?? ''); ?>"
+                               placeholder="ex: Focșani, Oltenița, Glogovat, etc.">
                     </div>
 
                     <div class="form-group">
-                        <label for="loc_descarcare">Loc Descărcare *</label>
-                        <input type="text" id="loc_descarcare" name="loc_descarcare" required
-                               value="<?php echo htmlspecialchars($_POST['loc_descarcare'] ?? ''); ?>"
-                               placeholder="ex: București">
+                        <label for="produs" class="required">Produs</label>
+                        <input type="text" id="produs" name="produs" required
+                               value="<?php echo htmlspecialchars($_POST['produs'] ?? ''); ?>"
+                               placeholder="ex: NPK NON ADR, AN CU ADR, CAN NON ADR, etc.">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="client_nume">Nume Client *</label>
-                    <input type="text" id="client_nume" name="client_nume" required
-                           value="<?php echo htmlspecialchars($_POST['client_nume'] ?? ''); ?>"
-                           placeholder="ex: SC Client SRL">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="distanta_km">Distanță (km) *</label>
-                        <input type="number" id="distanta_km" name="distanta_km" required step="0.1"
-                               value="<?php echo htmlspecialchars($_POST['distanta_km'] ?? ''); ?>"
-                               placeholder="ex: 325.5">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="tonaj">Tonaj (tone) *</label>
-                        <input type="number" id="tonaj" name="tonaj" required step="0.01"
-                               value="<?php echo htmlspecialchars($_POST['tonaj'] ?? '24.00'); ?>"
-                               placeholder="ex: 24.00">
+                    <label for="necesita_adr">Transport ADR necesar?</label>
+                    <select id="necesita_adr" name="necesita_adr" onchange="toggleADRWarning()">
+                        <option value="0" <?php echo (($_POST['necesita_adr'] ?? '0') === '0') ? 'selected' : ''; ?>>NU - Transport normal</option>
+                        <option value="1" <?php echo (($_POST['necesita_adr'] ?? '0') === '1') ? 'selected' : ''; ?>>DA - Transport substanțe periculoase (ADR)</option>
+                    </select>
+                    <div id="adr-warning" class="adr-warning" style="display: none;">
+                        ⚠️ <strong>ATENȚIE:</strong> Pentru transporturile ADR, doar transportatorii cu autorizație ADR validă vor putea participa la licitație.
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="tarif_tinta">Tarif Țintă (RON) *</label>
-                        <input type="number" id="tarif_tinta" name="tarif_tinta" required step="0.01"
+                        <label for="tarif_tinta" class="required">Tarif Țintă</label>
+                        <input type="number" id="tarif_tinta" name="tarif_tinta" required step="0.01" min="0"
                                value="<?php echo htmlspecialchars($_POST['tarif_tinta'] ?? ''); ?>"
-                               placeholder="ex: 1500.00">
+                               placeholder="ex: 300.00">
                     </div>
 
                     <div class="form-group">
-                        <label for="data_expeditie">Data Expediției *</label>
-                        <input type="date" id="data_expeditie" name="data_expeditie" required
-                               value="<?php echo htmlspecialchars($_POST['data_expeditie'] ?? ''); ?>">
+                        <label for="moneda" class="required">Monedă</label>
+                        <select id="moneda" name="moneda" required>
+                            <option value="">Selectează moneda</option>
+                            <option value="EUR" <?php echo (($_POST['moneda'] ?? '') === 'EUR') ? 'selected' : ''; ?>>EUR</option>
+                            <option value="RON" <?php echo (($_POST['moneda'] ?? '') === 'RON') ? 'selected' : ''; ?>>RON</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="detalii">Detalii Expediție (opțional)</label>
-                    <textarea id="detalii" name="detalii" rows="4"
-                              placeholder="ex: Marfă generală, ambalaj special, instrucțiuni de descărcare..."><?php echo htmlspecialchars($_POST['detalii'] ?? ''); ?></textarea>
+                    <label for="data_transport" class="required">Data Transportului</label>
+                    <input type="date" id="data_transport" name="data_transport" required
+                           value="<?php echo htmlspecialchars($_POST['data_transport'] ?? ''); ?>">
                 </div>
 
                 <button type="submit" class="btn">🚚 Crează Expediție</button>
@@ -276,8 +287,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Setează data minimă pentru azi
-        document.getElementById('data_expeditie').min = new Date().toISOString().split('T')[0];
+        // Setează data minimă pentru mâine
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('data_transport').min = tomorrow.toISOString().split('T')[0];
+        
+        // Focus primul câmp
+        document.getElementById('nume_client').focus();
+
+        // Funcție pentru afișare/ascundere avertisment ADR
+        function toggleADRWarning() {
+            const necesitaADR = document.getElementById('necesita_adr').value;
+            const adrWarning = document.getElementById('adr-warning');
+            
+            if (necesitaADR === '1') {
+                adrWarning.style.display = 'block';
+            } else {
+                adrWarning.style.display = 'none';
+            }
+        }
+
+        // Apelează funcția la încărcarea paginii
+        document.addEventListener('DOMContentLoaded', toggleADRWarning);
     </script>
 </body>
 </html>
